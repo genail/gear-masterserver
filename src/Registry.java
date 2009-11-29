@@ -3,6 +3,7 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedList;
 
@@ -47,15 +48,16 @@ public class Registry {
 	 * @return Number of restored entries or -1 on error.
 	 */
 	public int restore(File file, boolean clear, boolean overwrite){
+		BufferedReader in = null;
 		try{
-			BufferedReader in = new BufferedReader(new FileReader(file));
+			in = new BufferedReader(new FileReader(file));
 			if(clear)
 				serverList.clear();
 			int loaded=0;
 			while(in.ready()){
 				String data=in.readLine();
 				String[] info = data.split(""+(char)16);
-				if(info.length!=5){
+				if(info.length!=7){
 					continue;
 				}
 				if(serverList.containsKey(info[0]+":"+info[1]))
@@ -63,7 +65,7 @@ public class Registry {
 						continue;
 					else
 						serverList.remove(info[0]+":"+info[1]);
-				serverList.put(info[0]+":"+info[1], new Server(info[0],Integer.parseInt(info[1]),info[2],info[3],Integer.parseInt(info[4])));
+				serverList.put(info[0]+":"+info[1], new Server(info[0],Integer.parseInt(info[1]),info[2],info[3],Integer.parseInt(info[4]),Integer.parseInt(info[5]),info[6]));
 				loaded++;
 			}
 			in.close();
@@ -72,6 +74,12 @@ public class Registry {
 			System.out.print("\n\n--Exception in Registry.restore("+file+","+clear+","+overwrite+")\n"+a.getMessage());
 			System.out.print("\n--\n");
 			return -1;
+		} finally {
+			try{in.close();}catch(IOException e){
+				System.out.print("\n\n--Exception in Registry.restore("+file+","+clear+","+overwrite+")\n"+a.getMessage());
+				System.out.print("\n--\n");
+				return -1;
+			}
 		}
 	}
 	/**
@@ -90,23 +98,27 @@ public class Registry {
 	 * @return Number of written entries or -1 on error.
 	 */
 	public int backup(File file, boolean clear){
+		DataOutputStream out;
 		try{
-			DataOutputStream out = new DataOutputStream(new FileOutputStream(file,clear));
+			out = new DataOutputStream(new FileOutputStream(file,clear));
 			int saved=0;
 			for(Server server: new LinkedList<Server>(serverList.values())){
 				try{
 					out.writeBytes(server.getAddress()+(char)16+""+server.getPort()+
 							(char)16+server.getName()+(char)16+server.getMode()+(char)16+
-							server.getPlayers()+"\n");
-				} catch(Exception e){}//TODO: This is to allow SOME records to be saved in case of error
+							server.getPlayers()+(char)16+""+server.getMaxPlayers()+
+							(char)16+server.getMap()+"\n");
+				} catch(IOException e){}//TODO: This is to allow SOME records to be saved in case of error
 				saved++;
 			}
 			out.close();
 			return saved;
-		} catch(Exception e){
+		} catch(IOException e){
 			System.out.print("\n\n--Exception in Registry.backup("+file+","+clear+")\n"+e.getMessage());
 			System.out.print("\n--\n");
 			return -1;
+		} finally {
+			out.close();
 		}
 	}
 	/**
@@ -149,8 +161,8 @@ public class Registry {
  * @version 1.0
  */
 class Server{
-	private String address,name,mode;
-	private int port,players;
+	private String address,name,mode,map;
+	private int port,players,maxPlayers;
 	
 	/**
 	 * Main constructor.
@@ -159,13 +171,17 @@ class Server{
 	 * @param name Name of the server.
 	 * @param mode Server's mode.
 	 * @param players Number of players currently on the server.
+	 * @param maxPlayers Maximum number of players this server can handle.
+	 * @param map Name of map currently playing on the server.
 	 */
-	public Server(String address, int port, String name, String mode, int players){
+	public Server(String address, int port, String name, String mode, int players, int maxPlayers, String map){
 		this.address=address;
 		this.port=port;
 		this.name=name;
 		this.mode=mode;
 		this.players=players;
+		this.maxPlayers=maxPlayers;
+		this.map=map;
 	}
 	/**
 	 * Returns IP address of the server.
@@ -203,6 +219,20 @@ class Server{
 		return players;
 	}
 	/**
+	 * Return maximum number of players this server can handle.
+	 * @return Maximum number of players this server can handle.
+	 */
+	public int getMaxPlayers(){
+		return maxPlayers;
+	}
+	/**
+	 * Return name of map that is currently playing on this server.
+	 * @return Name of map that is currently playing on this server.
+	 */
+	public String getMap(){
+		return map;
+	}
+	/**
 	 * Updates server's name.
 	 * @param name New name for server.
 	 */
@@ -222,5 +252,19 @@ class Server{
 	 */
 	public void setPlayers(int players){
 		this.players=players;
+	}
+	/**
+	 * Updates maximum number of players this server can handle.
+	 * @param maxPlayers Maximum number of players this server can handle.
+	 */
+	public void setMaxPlayers(int maxPlayers){
+		this.maxPlayers=maxPlayers;
+	}
+	/**
+	 * Updates name of map that is currently playing on this server.
+	 * @param map Name of map that is currently playing on this server.
+	 */
+	public void setMap(String map){
+		this.map=map;
 	}
 }

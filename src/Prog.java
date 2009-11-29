@@ -10,6 +10,7 @@ import java.net.Socket;
 public class Prog{
 	public static void main(String[] args){
 		Registry reg = new Registry();
-		reg.add(new Server("192.168.1.2",101,"test","aa",10));
+		reg.add(new Server("192.168.1.2",101,"test","aa",10,20,"CHUJ"));
+		reg.backup(new File("D:/test.a"));
 	}
 }
