@@ -30,7 +30,7 @@ public class MasterServer{
 		while(true){
 			Socket client = ssocket.accept();
 			log.finest("New client connected at "+client.getInetAddress().getHostAddress()+". Creating SocketOperator");
-			new Thread(new SocketOperator(client)).run();
+			new Thread(new SocketOperator(client)).start();
 		}
 	}	
 }
@@ -68,16 +68,16 @@ class SocketOperator implements Runnable{
 				Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new ByteArrayInputStream(data));
 				Element root = doc.getDocumentElement();
 				String name= root.getTagName();
-				if(name=="HELO"){
-					if(root.getFirstChild().getTextContent()!="0")
-						out.writeBytes("<FAILED></FAILED>");
+				if(name.equals("HELO")){
+					if(!root.getFirstChild().getTextContent().equals("0"))
+						out.writeUTF("<FAILED></FAILED>");
 					else{
 						pvmajor=Integer.parseInt(root.getFirstChild().getTextContent());
 						pvminor=Integer.parseInt(root.getLastChild().getTextContent());
-						out.writeBytes("<SUCCEED></SUCCEED>");
+						out.writeUTF("<SUCCEED></SUCCEED>");
 					}
 				}
-				if(name=="REGISTER")
+				if(name.equals("REGISTER"))
 					if(pvminor!=-1 && pvmajor!=-1){
 						String named,moded;/*1,2*/
 						int playersd,maxPlayersd,identyfierd;/*1,2*/
@@ -86,6 +86,7 @@ class SocketOperator implements Runnable{
 					}
 			}
 		} catch(IOException e){
+			e.printStackTrace();
 			if(e.getMessage()==null)
 				logger.finest("Client at "+client.getInetAddress().getHostAddress()+" disconnected."); // TODO: Error occurse once outputstream is closed.
 			else
