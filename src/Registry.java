@@ -1,14 +1,14 @@
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.logging.*;
 
 public class Registry{
-	private Logger log;
+	private static Logger log = Logger.getLogger("Log");
 	private HashMap<String,Server> serverList;
 	private HashMap<String,Date> banList;
 	
 	public Registry(){
-		log = Logger.getLogger("Log");
 		serverList = new HashMap<String,Server>();
 		banList = new HashMap<String,Date>();
 		log.info("New registry created.");
@@ -26,10 +26,10 @@ public class Registry{
 				server.updatePlayers(players, id);
 				server.updateMode(mode,id);
 				server.updateMap(map, id);
-			} catch(Server.WrongIdentifier e){
+			} catch(WrongIdentifier e){
 				log.severe("Unexpected Server.WrongIdentifier! Some records might have been already changed! Message:"+ e.getMessage());
 				return false;
-			} catch(Server.ServerException e){
+			} catch(ServerException e){
 				log.severe("Unexpected Server.ServerException! Some records might have been already changed! Message:"+ e.getMessage());
 				return false;
 			}
@@ -40,6 +40,12 @@ public class Registry{
 			return false;
 		}
 	}
+	public LinkedList<Server> getServerList(){
+		return new LinkedList<Server>(serverList.values());
+	}
+	public boolean isBanned(String ip){
+		return banList.containsKey(ip) && banList.get(ip).after(new Date());
+	}
 	public void registerEntry(Server server) throws EntryAlreadyExists, ClientBanned{
 		if(serverList.containsValue(server) || serverList.containsKey(server.getAddress()+":"+server.getPort()))
 			throw new EntryAlreadyExists();
@@ -47,16 +53,16 @@ public class Registry{
 			throw new ClientBanned();
 		serverList.put(server.getAddress()+":"+server.getPort(), server);
 	}
-	@SuppressWarnings("serial")
-	public class EntryAlreadyExists extends Exception{
-		public EntryAlreadyExists(){
-			super("Entry already exists in the registry. Registration failed.");
-		}
+}
+@SuppressWarnings("serial")
+class EntryAlreadyExists extends Exception{
+	public EntryAlreadyExists(){
+		super("Entry already exists in the registry. Registration failed.");
 	}
-	@SuppressWarnings("serial")
-	public class ClientBanned extends Exception{
-		public ClientBanned(){
-			super("Client is banned. Registration failed.");
-		}
+}
+@SuppressWarnings("serial")
+class ClientBanned extends Exception{
+	public ClientBanned(){
+		super("Client is banned. Registration failed.");
 	}
 }

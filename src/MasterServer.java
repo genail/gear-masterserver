@@ -40,6 +40,7 @@ class SocketOperator implements Runnable{
 	private DataOutputStream out;
 	private static Logger logger = Logger.getLogger(SocketOperator.class.getName());
 	private boolean goOn=true;
+	private int pvminor=-1, pvmajor=-1;
 	
 	public SocketOperator(Socket client){
 		this.client=client;
@@ -60,15 +61,32 @@ class SocketOperator implements Runnable{
 			while(goOn){
 				int length = in.readUnsignedShort();
 				byte[] data = new byte[length];
+				try{Thread.sleep(500);} catch(Exception e) {} //OH well...
 				in.read(data, 0, length);
+				System.out.println(new String(data));
 				logger.finest("Data received from client at "+client.getInetAddress().getHostAddress()+". Processing");
 				Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new ByteArrayInputStream(data));
 				Element root = doc.getDocumentElement();
-				System.out.println(root.getTagName());
+				String name= root.getTagName();
+				if(name=="HELO"){
+					if(root.getFirstChild().getTextContent()!="0")
+						out.writeBytes("<FAILED></FAILED>");
+					else{
+						pvmajor=Integer.parseInt(root.getFirstChild().getTextContent());
+						pvminor=Integer.parseInt(root.getLastChild().getTextContent());
+						out.writeBytes("<SUCCEED></SUCCEED>");
+					}
+				}
+				if(name=="REGISTER")
+					if(pvminor!=-1 && pvmajor!=-1){
+						String named,moded;/*1,2*/
+						int playersd,maxPlayersd,identyfierd;/*1,2*/
+						name=root.getChildNodes().item(0).getTextContent();
+						System.out.println(name);
+					}
 			}
 		} catch(IOException e){
-			System.out.println(client.isClosed());
-			if(client.isClosed())
+			if(e.getMessage()==null)
 				logger.finest("Client at "+client.getInetAddress().getHostAddress()+" disconnected."); // TODO: Error occurse once outputstream is closed.
 			else
 				logger.warning("I/O Exception occured with client at "+client.getInetAddress().getHostAddress()+
@@ -78,7 +96,7 @@ class SocketOperator implements Runnable{
 					". Probably corrupted message data. Client will be dropped. Message: "+e.getMessage());
 		} catch(SAXException e){
 			logger.warning("SAXException occured for client at "+client.getInetAddress().getHostAddress()+
-					". Probably corrupted message data. Client will be dropped. Message: "+e.getMessage());
+					". Probably corrupted message data. Client will be dropped. Message: "+e.getMessage()+". Packet: ");
 		}finally{
 			try{ client.close(); in.close(); out.close(); }catch(IOException a){}//TODO: And again
 		}
