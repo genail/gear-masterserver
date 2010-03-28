@@ -1,3 +1,4 @@
+package pl.graniec.gear.masterserver;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;

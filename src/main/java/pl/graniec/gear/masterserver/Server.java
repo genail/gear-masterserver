@@ -1,3 +1,4 @@
+package pl.graniec.gear.masterserver;
 import java.util.logging.*;
 
 public class Server {
