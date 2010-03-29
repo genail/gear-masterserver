@@ -1,4 +1,4 @@
-package pl.graniec.gear.masterserver;
+package pl.graniec.gear.masterserver.registry;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;

@@ -1,4 +1,4 @@
-package pl.graniec.gear.masterserver;
+package pl.graniec.gear.masterserver.registry;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
