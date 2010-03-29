@@ -1,69 +1,107 @@
 package pl.graniec.gear.masterserver;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.logging.*;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Logger;
 
-public class Registry{
-	private static Logger log = Logger.getLogger("Log");
-	private HashMap<String,Server> serverList;
-	private HashMap<String,Date> banList;
+public class Registry {
 	
-	public Registry(){
-		serverList = new HashMap<String,Server>();
-		banList = new HashMap<String,Date>();
-		log.info("New registry created.");
+	// static fields
+	
+	@SuppressWarnings("unused")
+	private static final Logger LOGGER =
+		Logger.getLogger(Registry.class.getName());
+	
+	
+	private static final Registry INSTANCE = new Registry();
+	
+	
+	// static methods
+	
+	public static Registry getInstance() {
+		return INSTANCE;
 	}
-	public boolean updateEntry(String addr, int port, int id, int players, int maxPlayers, String mode, String map){
-		if(!serverList.containsKey(addr+":"+port)){
-			log.warning("Attempt to update unregistered entry.");
+	
+	
+	// non-static fields
+	
+	private final Map<String, RegistryEntry> entriesMap =
+		new HashMap<String, RegistryEntry>();
+	
+	private final Set<RegistryEntry> cleanseCandidatesSet =
+		new HashSet<RegistryEntry>();
+	
+	
+	// non-static methods
+	
+	private Registry() {
+		// empty
+	}
+	
+	private String toEntryKey(RegistryEntry entry) {
+		return toEntryKey(entry.getServerAddr(), entry.getServerPort());
+	}
+	
+	private String toEntryKey(String serverAddr, int serverPort) {
+		return serverAddr + ":" + serverPort;
+	}
+	
+	/**
+	 * @param entry
+	 * @return <code>true</code> if entry successfully added, <code>false</code>
+	 * if already exists.
+	 */
+	public synchronized boolean addEntry(RegistryEntry entry) {
+		if (entriesMap.containsValue(entry)) {
 			return false;
 		}
-		Server server = serverList.get(addr+":"+port);
-		if(server.checkMap(map) && server.checkMaxPlayers(maxPlayers) && server.checkMode(mode)
-				&& server.checkPlayers(players, maxPlayers) && server.checkId(id)){
-			try{
-				server.updateMaxPlayers(maxPlayers, id);
-				server.updatePlayers(players, id);
-				server.updateMode(mode,id);
-				server.updateMap(map, id);
-			} catch(WrongIdentifier e){
-				log.severe("Unexpected Server.WrongIdentifier! Some records might have been already changed! Message:"+ e.getMessage());
-				return false;
-			} catch(ServerException e){
-				log.severe("Unexpected Server.ServerException! Some records might have been already changed! Message:"+ e.getMessage());
-				return false;
-			}
-			log.fine("Updated server "+addr+":"+port);
-			return true;
-		} else {
-			log.warning("Could not update "+addr+":"+port);
+		
+		entriesMap.put(toEntryKey(entry), new RegistryEntry(entry));
+		return true;
+	}
+	
+	public synchronized boolean removeEntry(RegistryEntry entry) {
+		return entriesMap.remove(toEntryKey(entry)) != null;
+	}
+	
+	/**
+	 * @param serverAddr
+	 * @param serverPort
+	 * @return <code>true</code> if entry updated as alive, <code>false</code>
+	 * if entry does not exists.
+	 */
+	public synchronized boolean keepAlive(RegistryEntry entry) {
+		final String entryKey = toEntryKey(entry);
+		final RegistryEntry existingEntry = entriesMap.get(entryKey);
+		
+		if (existingEntry == null) {
 			return false;
 		}
+		
+		cleanseCandidatesSet.remove(existingEntry);
+		return true;
 	}
-	public LinkedList<Server> getServerList(){
-		return new LinkedList<Server>(serverList.values());
+	
+	/**
+	 * Updates entry data. This also works as 'keep alive'.
+	 * 
+	 * @param entry
+	 * @return <code>true</code> if entry successfully updated,
+	 * <code>false</code> if entry does not exists.
+	 */
+	public synchronized boolean updateEntry(RegistryEntry entry) {
+		final String entryKey = toEntryKey(entry);
+		final RegistryEntry existingEntry = entriesMap.get(entryKey);
+		
+		if (existingEntry == null) {
+			return false;
+		}
+
+		cleanseCandidatesSet.remove(existingEntry);
+		entriesMap.put(entryKey, new RegistryEntry(entry));
+		
+		return true;
 	}
-	public boolean isBanned(String ip){
-		return banList.containsKey(ip) && banList.get(ip).after(new Date());
-	}
-	public void registerEntry(Server server) throws EntryAlreadyExists, ClientBanned{
-		if(serverList.containsValue(server) || serverList.containsKey(server.getAddress()+":"+server.getPort()))
-			throw new EntryAlreadyExists();
-		if(banList.containsKey(server.getAddress()) && banList.get(server.getAddress()).after(new Date()))
-			throw new ClientBanned();
-		serverList.put(server.getAddress()+":"+server.getPort(), server);
-	}
-}
-@SuppressWarnings("serial")
-class EntryAlreadyExists extends Exception{
-	public EntryAlreadyExists(){
-		super("Entry already exists in the registry. Registration failed.");
-	}
-}
-@SuppressWarnings("serial")
-class ClientBanned extends Exception{
-	public ClientBanned(){
-		super("Client is banned. Registration failed.");
-	}
+	
 }
