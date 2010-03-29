@@ -104,4 +104,13 @@ public class Registry {
 		return true;
 	}
 	
+	final synchronized void cleanse() {
+		for (final RegistryEntry entryToClean : cleanseCandidatesSet) {
+			entriesMap.remove(toEntryKey(entryToClean));
+		}
+		
+		cleanseCandidatesSet.clear();
+		cleanseCandidatesSet.addAll(entriesMap.values());
+	}
+	
 }
