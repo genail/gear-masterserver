@@ -52,11 +52,13 @@ public class Registry {
 	 * if already exists.
 	 */
 	public synchronized boolean addEntry(RegistryEntry entry) {
-		if (entriesMap.containsValue(entry)) {
+		final String entryKey = toEntryKey(entry);
+		
+		if (entriesMap.containsKey(entryKey)) {
 			return false;
 		}
 		
-		entriesMap.put(toEntryKey(entry), new RegistryEntry(entry));
+		entriesMap.put(entryKey, new RegistryEntry(entry));
 		return true;
 	}
 	
