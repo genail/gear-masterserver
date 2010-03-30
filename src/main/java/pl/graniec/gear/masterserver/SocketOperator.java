@@ -57,15 +57,18 @@ class SocketOperator implements Runnable{
 			StreamHelper.closeStream(inStream);
 			
 			try {
-				closeConnection();
+				disconnect();
 			} catch(final IOException a) {
 				// nothing to fear
 			}
 		}
 	}
 	
-	private void closeConnection() throws IOException {
-		clientSocket.close();
+	private void disconnect() throws IOException {
+		if (!clientSocket.isClosed()) {
+			LOGGER.finer("disconnecting client " + clientSocket);
+			clientSocket.close();
+		}
 	}
 	
 	private void processEvent(NetGameEvent event)
@@ -96,7 +99,7 @@ class SocketOperator implements Runnable{
 			sendSucceedEvent();
 		} else {
 			sendFailedEvent();
-			closeConnection();
+			disconnect();
 		}
 	}
 
@@ -118,6 +121,8 @@ class SocketOperator implements Runnable{
 		} else {
 			sendFailedEvent();
 		}
+		
+		disconnect();
 	}
 
 	private boolean updateEntry(RegistryEntry entry) {
@@ -141,6 +146,8 @@ class SocketOperator implements Runnable{
 		} else {
 			sendFailedEvent();
 		}
+		
+		disconnect();
 	}
 
 	private boolean keepAliveEntry(RegistryEntry entry) {
@@ -168,6 +175,8 @@ class SocketOperator implements Runnable{
 		} else {
 			sendFailedEvent();
 		}
+		
+		disconnect();
 	}
 	
 	private boolean registerEntry(RegistryEntry entry) {
@@ -201,7 +210,7 @@ class SocketOperator implements Runnable{
 				disconnectIfThreadIsInterrupted();
 			}
 		} catch (final IOException e) {
-			LOGGER.fine("client " + getClientIpAddr() + " disconnected");
+			LOGGER.fine("client disconnected: " + clientSocket);
 		} catch (final DataCorruptedException e) {
 			LOGGER.log(Level.WARNING, "client sent corrupted data", e);
 		} finally {
@@ -209,7 +218,7 @@ class SocketOperator implements Runnable{
 			StreamHelper.closeStream(outStream);
 			
 			try {
-				closeConnection();
+				disconnect();
 			} catch (final IOException e) {
 				// nothing to fear
 			}
@@ -218,7 +227,8 @@ class SocketOperator implements Runnable{
 	
 	private void disconnectIfThreadIsInterrupted() throws IOException {
 		if (Thread.interrupted()) {
-			closeConnection();
+			LOGGER.fine("connected too long - disconnecting " + clientSocket);
+			disconnect();
 		}
 	}
 

@@ -4,3 +4,5 @@
 target/
 src/test/cpp/register
 src/test/cpp/register.o
+src/test/cpp/register_and_update
+src/test/cpp/register_and_update.o

@@ -6,6 +6,9 @@
 
 #define PORT "37005"
 
+#define VERSION_MAJOR 1
+#define VERSION_MINOR 0
+
 // This is the Application class (That is instantiated by the Program Class)
 class App
 {

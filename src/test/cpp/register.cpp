@@ -27,7 +27,7 @@ int App::start(const std::vector<CL_String> &args)
 		
 		client.connect("localhost", PORT);
 		
-		CL_NetGameEvent helloEvent("HELLO", 1, 0);
+		CL_NetGameEvent helloEvent("HELLO", VERSION_MAJOR, VERSION_MINOR);
 		CL_Console::write_line(cl_format("sending %1", helloEvent.to_string()));
 		client.send_event(helloEvent);
 		
@@ -35,7 +35,7 @@ int App::start(const std::vector<CL_String> &args)
 			CL_KeepAlive::process();
 		}
 		
-		CL_NetGameEvent registerEvent("REGISTER", 1234, "Test server", "first.map");
+		CL_NetGameEvent registerEvent("REGISTER", 1234, "Register test", "first.map");
 		CL_Console::write_line(cl_format("sending %1", registerEvent.to_string()));
 		client.send_event(registerEvent);
 		
