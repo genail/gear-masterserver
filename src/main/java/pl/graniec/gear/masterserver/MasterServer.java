@@ -112,7 +112,7 @@ public class MasterServer implements Runnable {
 	
 	@Override
 	public final void run() {
-		checkState(serverSocket != null);
+		checkState(serverSocket == null);
 		
 		try {
 			startServer();
