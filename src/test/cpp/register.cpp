@@ -78,13 +78,18 @@ int App::start(const std::vector<CL_String> &args)
 		slots.connect(client.sig_disconnected(), this, &App::onDisconnect);
 		
 		client.connect("localhost", PORT);
-		client.send_event(CL_NetGameEvent("HELLO", 1, 0));
+		
+		CL_NetGameEvent helloEvent("HELLO", 1, 0);
+		CL_Console::write_line(cl_format("sending %1", helloEvent.to_string()));
+		client.send_event(helloEvent);
 		
 		while (!helloAccepted) {
 			CL_KeepAlive::process();
 		}
 		
-		client.send_event(CL_NetGameEvent("REGISTER", 1234, "Test server", "first.map"));
+		CL_NetGameEvent registerEvent("REGISTER", 1234, "Test server", "first.map");
+		CL_Console::write_line(cl_format("sending %1", registerEvent.to_string()));
+		client.send_event(registerEvent);
 		
 		while (!m_disconnected) {
 			CL_KeepAlive::process();
