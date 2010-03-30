@@ -48,6 +48,8 @@ CL_ClanApplication app(&Program::main);
 
 const char *PORT = "37005";
 
+bool helloAccepted = false;
+
 void App::onDisconnect()
 {
 	m_disconnected = true;
@@ -56,6 +58,11 @@ void App::onDisconnect()
 void App::onEventReceived(const CL_NetGameEvent &p_event)
 {
 	CL_Console::write_line(cl_format("event received: %1", p_event.to_string()));
+	
+	if (!helloAccepted) {
+		helloAccepted = true;
+		return;
+	}
 }
 
 // The start of the Application
@@ -70,6 +77,12 @@ int App::start(const std::vector<CL_String> &args)
 		
 		client.connect("localhost", PORT);
 		client.send_event(CL_NetGameEvent("HELLO", 1, 0));
+		
+		while (!helloAccepted) {
+			CL_KeepAlive::process();
+		}
+		
+		client.send_event(CL_NetGameEvent("REGISTER", 1234, "Test server", "first.map"));
 		
 		while (!m_disconnected) {
 			CL_KeepAlive::process();

@@ -123,7 +123,9 @@ public class NetGameEvent {
 	private static byte[] readEventIntoBuffer(InputStream inStream)
 			throws IOException, DataCorruptedException {
 		final DataInputStream dataInStream = new DataInputStream(inStream);
-		final int bufferSize = dataInStream.readUnsignedShort();
+		int bufferSize = dataInStream.readUnsignedShort();
+		
+		bufferSize = unsignedShortToBigEndian(bufferSize);
 		
 		if (bufferSize > PACKET_SIZE_LIMIT) {
 			throw new DataCorruptedException("exceed packet size");
@@ -135,6 +137,14 @@ public class NetGameEvent {
 		buffer = trimBytes(buffer);
 		
 		return buffer;
+	}
+	
+	private static int unsignedShortToBigEndian(int val) {
+		int n = 0;
+		n |= (val & 0xFF) << 8;
+		n |= (val & 0xFF00) >> 8;
+		
+		return n;
 	}
 
 	private static byte[] trimBytes(byte[] buffer) {
