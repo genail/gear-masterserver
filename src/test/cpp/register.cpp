@@ -52,6 +52,7 @@ bool helloAccepted = false;
 
 void App::onDisconnect()
 {
+	CL_Console::write_line(cl_text("disconnected"));
 	m_disconnected = true;
 }
 
@@ -73,7 +74,8 @@ int App::start(const std::vector<CL_String> &args)
 		CL_SlotContainer slots;
 	
 		CL_NetGameClient client;
-		slots.connect(client.sig_event_received(), this, &App::onEventReceived);		
+		slots.connect(client.sig_event_received(), this, &App::onEventReceived);
+		slots.connect(client.sig_disconnected(), this, &App::onDisconnect);
 		
 		client.connect("localhost", PORT);
 		client.send_event(CL_NetGameEvent("HELLO", 1, 0));
