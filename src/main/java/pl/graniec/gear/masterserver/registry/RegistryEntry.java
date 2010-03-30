@@ -60,8 +60,8 @@ public class RegistryEntry {
 		this.serverName = serverName;
 	}
 	
-	public void setCurrentMap(String currentMap) {
-		this.currentMapName = currentMap;
+	public void setCurrentMapName(String currentMapName) {
+		this.currentMapName = currentMapName;
 	}
 	
 }

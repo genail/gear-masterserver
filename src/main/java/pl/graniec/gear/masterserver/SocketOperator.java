@@ -8,6 +8,13 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import pl.graniec.gear.masterserver.exceptions.DataCorruptedException;
+import pl.graniec.gear.masterserver.packets.FailedPacket;
+import pl.graniec.gear.masterserver.packets.KeepAlivePacket;
+import pl.graniec.gear.masterserver.packets.RegisterPacket;
+import pl.graniec.gear.masterserver.packets.SucceedPacket;
+import pl.graniec.gear.masterserver.packets.UpdatePacket;
+import pl.graniec.gear.masterserver.registry.Registry;
+import pl.graniec.gear.masterserver.registry.RegistryEntry;
 
 class SocketOperator implements Runnable{
 	
@@ -57,34 +64,114 @@ class SocketOperator implements Runnable{
 		}
 	}
 	
-	private void processEvent(NetGameEvent event) {
+	private void processEvent(NetGameEvent event)
+	throws DataCorruptedException, IOException {
 		final String eventName = event.getName();
 		
-		if (eventName.equals("REGISTER")) {
+		if (eventName.equals(RegisterPacket.NAME)) {
 			processRegisterEvent(event);
-		} else if (eventName.equals("KEEPALIVE")) {
+		} else if (eventName.equals(KeepAlivePacket.NAME)) {
 			processKeepAliveEvent(event);
-		} else if (eventName.equals("UPDATE")) {
+		} else if (eventName.equals(UpdatePacket.NAME)) {
 			processUpdateEvent(event);
-		} else if (eventName.equals("UNREGISTER")) {
-			processUnregisterEvent(event);
+		} else {
+			throw new DataCorruptedException("unknown event: " + eventName);
+		}
+	}
+
+	private void processUpdateEvent(NetGameEvent event)
+			throws DataCorruptedException, IOException {
+		final UpdatePacket updatePacket = new UpdatePacket();
+		updatePacket.parseEvent(event);
+		
+		final String serverAddr =
+			clientSocket.getInetAddress().getHostAddress();
+		
+		final RegistryEntry registryEntry = new RegistryEntry(
+				serverAddr,
+				updatePacket.getServerPort()
+		);
+		
+		registryEntry.setServerName(updatePacket.getServerName());
+		registryEntry.setCurrentMapName(updatePacket.getCurrentMapName());
+		
+		if (updateEntry(registryEntry)) {
+			sendSucceedEvent();
+		} else {
+			sendFailedEvent();
+		}
+	}
+
+	private boolean updateEntry(RegistryEntry entry) {
+		final Registry registry = Registry.getInstance();
+		return registry.updateEntry(entry);
+	}
+
+	private void processKeepAliveEvent(NetGameEvent event)
+			throws DataCorruptedException, IOException {
+		final KeepAlivePacket keepAlivePacket = new KeepAlivePacket();
+		keepAlivePacket.parseEvent(event);
+		
+		final String serverAddr =
+			clientSocket.getInetAddress().getHostAddress();
+		final int serverPort = keepAlivePacket.getServerPort();
+		
+		final RegistryEntry registryEntry = new RegistryEntry(
+				serverAddr, serverPort
+		);
+		
+		if (keepAliveEntry(registryEntry)) {
+			sendSucceedEvent();
+		} else {
+			sendFailedEvent();
+		}
+	}
+
+	private boolean keepAliveEntry(RegistryEntry entry) {
+		final Registry registry = Registry.getInstance();
+		return registry.keepAlive(entry);
+	}
+
+	private void processRegisterEvent(NetGameEvent event)
+			throws DataCorruptedException, IOException {
+		final RegisterPacket registerPacket = new RegisterPacket();
+		registerPacket.parseEvent(event);
+		
+		
+		final String serverAddr =
+			clientSocket.getInetAddress().getHostAddress();
+		
+		final RegistryEntry registryEntry = new RegistryEntry(
+				serverAddr,
+				registerPacket.getServerPort()
+		);
+		
+		registryEntry.setServerName(registerPacket.getServerName());
+		registryEntry.setCurrentMapName(registerPacket.getCurrentMapName());
+		
+		
+		if (registerEntry(registryEntry)) {
+			sendSucceedEvent();
+		} else {
+			sendFailedEvent();
 		}
 	}
 	
-	private void processUnregisterEvent(NetGameEvent event) {
-		
+	private boolean registerEntry(RegistryEntry entry) {
+		final Registry registry = Registry.getInstance();
+		return registry.addEntry(entry);
 	}
 
-	private void processUpdateEvent(NetGameEvent event) {
-		
+	private void sendFailedEvent() throws IOException {
+		final FailedPacket failedPacket = new FailedPacket();
+		final NetGameEvent failedEvent = failedPacket.buildEvent();
+		failedEvent.toStream(outStream);
 	}
 
-	private void processKeepAliveEvent(NetGameEvent event) {
-		
-	}
-
-	private void processRegisterEvent(NetGameEvent event) {
-		
+	private void sendSucceedEvent() throws IOException {
+		final SucceedPacket succeedPacket = new SucceedPacket();
+		final NetGameEvent succeedEvent = succeedPacket.buildEvent();
+		succeedEvent.toStream(outStream);
 	}
 
 	public void run() {
