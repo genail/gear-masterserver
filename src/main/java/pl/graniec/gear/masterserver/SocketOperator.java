@@ -42,6 +42,7 @@ class SocketOperator implements Runnable{
 		this.clientSocket = clientSocket;
 		try {
 			clientSocket.setSoTimeout(SOCKET_TIMEOUT);
+			clientSocket.setTcpNoDelay(true);
 			
 			inStream = clientSocket.getInputStream();
 			outStream = clientSocket.getOutputStream();
@@ -69,6 +70,8 @@ class SocketOperator implements Runnable{
 	
 	private void processEvent(NetGameEvent event)
 	throws DataCorruptedException, IOException {
+		LOGGER.finer("received event " + event + " from " + clientSocket);
+		
 		final String eventName = event.getName();
 		
 		if (eventName.equals(HelloPacket.NAME)) {
@@ -173,12 +176,16 @@ class SocketOperator implements Runnable{
 	}
 
 	private void sendFailedEvent() throws IOException {
+		LOGGER.finer("sending FAILED to " + clientSocket);
+		
 		final FailedPacket failedPacket = new FailedPacket();
 		final NetGameEvent failedEvent = failedPacket.buildEvent();
 		failedEvent.toStream(outStream);
 	}
 
 	private void sendSucceedEvent() throws IOException {
+		LOGGER.finer("sending SUCCEESS to " + clientSocket);
+		
 		final SucceedPacket succeedPacket = new SucceedPacket();
 		final NetGameEvent succeedEvent = succeedPacket.buildEvent();
 		succeedEvent.toStream(outStream);

@@ -2,3 +2,5 @@
 .project
 .settings/
 target/
+src/test/cpp/register
+src/test/cpp/register.o

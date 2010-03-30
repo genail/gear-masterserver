@@ -1,6 +1,7 @@
 package pl.graniec.gear.masterserver;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -128,10 +129,16 @@ public class NetGameEvent {
 			throw new DataCorruptedException("exceed packet size");
 		}
 		
-		final byte[] buffer = new byte[bufferSize];
+		byte[] buffer = new byte[bufferSize];
 		dataInStream.read(buffer, 0, bufferSize);
 		
+		buffer = trimBytes(buffer);
+		
 		return buffer;
+	}
+
+	private static byte[] trimBytes(byte[] buffer) {
+		return new String(buffer).trim().getBytes();
 	}
 	
 	
@@ -189,11 +196,37 @@ public class NetGameEvent {
 			return;
 		}
 		
+		LOGGER.finest("sending: " + xmlString);
+		
+		final ByteArrayOutputStream byteArrayOut = new ByteArrayOutputStream();
+		writeXmlToByteArray(xmlString, byteArrayOut);
+		
+		final byte[] byteArray = byteArrayOut.toByteArray();
+		
+		// this is needed because first numbers is length and must be
+		// in little endian
+		swapTwoFirstBytes(byteArray);
+		
+		dataOutStream.write(byteArray);
+	}
+
+	private void writeXmlToByteArray(String xmlString,
+			final ByteArrayOutputStream byteArrayOut) throws IOException {
+		
 		// writeUTF methods writes string length as signed short first.
 		// ClanLib requires that data part to be unsigned short.
 		// So when packet size won't exceed 2^15 then everything should be
 		// allright.
-		dataOutStream.writeUTF(xmlString);
+		
+		final DataOutputStream tempOutputStream =
+			new DataOutputStream(byteArrayOut);
+		tempOutputStream.writeUTF(xmlString);
+	}
+
+	private void swapTwoFirstBytes(byte[] byteArray) {
+		final byte a = byteArray[0];
+		byteArray[0] = byteArray[1];
+		byteArray[1] = a;
 	}
 
 	private String buildXmlString() {
