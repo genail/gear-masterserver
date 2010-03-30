@@ -105,6 +105,17 @@ public class Registry {
 		return true;
 	}
 	
+	public synchronized final RegistryEntry[] getEntries() {
+		final RegistryEntry[] result = new RegistryEntry[entriesMap.size()];
+		
+		int i = 0;
+		for (final RegistryEntry entry : entriesMap.values()) {
+			result[i++] = new RegistryEntry(entry);
+		}
+		
+		return result;
+	}
+	
 	final synchronized void cleanse() {
 		
 		LOGGER.finer(

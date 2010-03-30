@@ -272,6 +272,9 @@ public class NetGameEvent {
 		} else if (valueObj instanceof Boolean) {
 			typeName = TYPE_BOOLEAN;
 			valueStr = ((Boolean) valueObj).toString();
+		} else if (valueObj instanceof String) {
+			typeName = TYPE_STRING;
+			valueStr = (String) valueObj;
 		} else {
 			throw new RuntimeException(
 					"type not supported: " + valueObj.getClass()

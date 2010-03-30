@@ -11,7 +11,9 @@ import pl.graniec.gear.masterserver.exceptions.DataCorruptedException;
 import pl.graniec.gear.masterserver.packets.FailedPacket;
 import pl.graniec.gear.masterserver.packets.HelloPacket;
 import pl.graniec.gear.masterserver.packets.KeepAlivePacket;
+import pl.graniec.gear.masterserver.packets.ListRequestPacket;
 import pl.graniec.gear.masterserver.packets.RegisterPacket;
+import pl.graniec.gear.masterserver.packets.ServerListPacket;
 import pl.graniec.gear.masterserver.packets.SucceedPacket;
 import pl.graniec.gear.masterserver.packets.UpdatePacket;
 import pl.graniec.gear.masterserver.registry.Registry;
@@ -85,8 +87,34 @@ class SocketOperator implements Runnable{
 			processKeepAliveEvent(event);
 		} else if (eventName.equals(UpdatePacket.NAME)) {
 			processUpdateEvent(event);
+		} else if (eventName.equals(ListRequestPacket.NAME)) {
+			processListRequestEvent(event);
 		} else {
 			throw new DataCorruptedException("unknown event: " + eventName);
+		}
+	}
+
+	private void processListRequestEvent(NetGameEvent event)
+			throws IOException {
+		final ServerListPacket serverListPacket = new ServerListPacket();
+		
+		fillServerListPacketWithRegistryEntries(serverListPacket);
+		sendServerListEvent(serverListPacket);
+		
+		disconnect();
+	}
+
+	private void sendServerListEvent(final ServerListPacket serverListPacket)
+			throws IOException {
+		final NetGameEvent serverListEvent = serverListPacket.buildEvent();
+		serverListEvent.toStream(outStream);
+	}
+
+	private void fillServerListPacketWithRegistryEntries(
+			final ServerListPacket serverListPacket) {
+		final Registry registry = Registry.getInstance();
+		for (final RegistryEntry entry : registry.getEntries()) {
+			serverListPacket.addRegistryEntry(entry);
 		}
 	}
 
