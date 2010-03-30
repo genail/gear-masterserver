@@ -9,6 +9,7 @@ import java.util.logging.Logger;
 
 import pl.graniec.gear.masterserver.exceptions.DataCorruptedException;
 import pl.graniec.gear.masterserver.packets.FailedPacket;
+import pl.graniec.gear.masterserver.packets.HelloPacket;
 import pl.graniec.gear.masterserver.packets.KeepAlivePacket;
 import pl.graniec.gear.masterserver.packets.RegisterPacket;
 import pl.graniec.gear.masterserver.packets.SucceedPacket;
@@ -18,8 +19,15 @@ import pl.graniec.gear.masterserver.registry.RegistryEntry;
 
 class SocketOperator implements Runnable{
 	
+	// static fields
+	
 	private static final Logger LOGGER =
 		Logger.getLogger(SocketOperator.class.getName());
+	
+	private static final int SOCKET_TIMEOUT = 500;
+	
+	
+	// non-static fields
 	
 	private final Socket clientSocket;
 	
@@ -27,27 +35,20 @@ class SocketOperator implements Runnable{
 	
 	private OutputStream outStream;
 	
-	private boolean goOn=true;
 	
-	private final int pvminor=-1, pvmajor=-1;
+	// non-static methods
 	
 	public SocketOperator(Socket clientSocket) {
 		this.clientSocket = clientSocket;
-		
 		try {
+			clientSocket.setSoTimeout(SOCKET_TIMEOUT);
+			
 			inStream = clientSocket.getInputStream();
 			outStream = clientSocket.getOutputStream();
-			
-			LOGGER.finest(
-					"New SocketOperator for client at "
-					+ clientSocket.getInetAddress().getHostAddress()
-					+ " has been created."
-			);
 		} catch (final IOException e) {
 			LOGGER.log(
 					Level.WARNING,
-					"Cannot get I/O for client at "
-					+ clientSocket.getInetAddress().getHostAddress(),
+					"error while initializing client socket",
 					e
 			);
 			
@@ -55,20 +56,24 @@ class SocketOperator implements Runnable{
 			StreamHelper.closeStream(inStream);
 			
 			try {
-				clientSocket.close();
+				closeConnection();
 			} catch(final IOException a) {
 				// nothing to fear
 			}
-			
-			goOn = false;
 		}
+	}
+	
+	private void closeConnection() throws IOException {
+		clientSocket.close();
 	}
 	
 	private void processEvent(NetGameEvent event)
 	throws DataCorruptedException, IOException {
 		final String eventName = event.getName();
 		
-		if (eventName.equals(RegisterPacket.NAME)) {
+		if (eventName.equals(HelloPacket.NAME)) {
+			processHelloEvent(event);
+		} else if (eventName.equals(RegisterPacket.NAME)) {
 			processRegisterEvent(event);
 		} else if (eventName.equals(KeepAlivePacket.NAME)) {
 			processKeepAliveEvent(event);
@@ -79,16 +84,26 @@ class SocketOperator implements Runnable{
 		}
 	}
 
+	private void processHelloEvent(NetGameEvent event)
+			throws DataCorruptedException, IOException {
+		final HelloPacket helloPacket = new HelloPacket();
+		helloPacket.parseEvent(event);
+		
+		if (helloPacket.getVersionMajor() == Protocol.VERSION_MAJOR) {
+			sendSucceedEvent();
+		} else {
+			sendFailedEvent();
+			closeConnection();
+		}
+	}
+
 	private void processUpdateEvent(NetGameEvent event)
 			throws DataCorruptedException, IOException {
 		final UpdatePacket updatePacket = new UpdatePacket();
 		updatePacket.parseEvent(event);
 		
-		final String serverAddr =
-			clientSocket.getInetAddress().getHostAddress();
-		
 		final RegistryEntry registryEntry = new RegistryEntry(
-				serverAddr,
+				getClientIpAddr(),
 				updatePacket.getServerPort()
 		);
 		
@@ -112,12 +127,10 @@ class SocketOperator implements Runnable{
 		final KeepAlivePacket keepAlivePacket = new KeepAlivePacket();
 		keepAlivePacket.parseEvent(event);
 		
-		final String serverAddr =
-			clientSocket.getInetAddress().getHostAddress();
 		final int serverPort = keepAlivePacket.getServerPort();
 		
 		final RegistryEntry registryEntry = new RegistryEntry(
-				serverAddr, serverPort
+				getClientIpAddr(), serverPort
 		);
 		
 		if (keepAliveEntry(registryEntry)) {
@@ -138,11 +151,8 @@ class SocketOperator implements Runnable{
 		registerPacket.parseEvent(event);
 		
 		
-		final String serverAddr =
-			clientSocket.getInetAddress().getHostAddress();
-		
 		final RegistryEntry registryEntry = new RegistryEntry(
-				serverAddr,
+				getClientIpAddr(),
 				registerPacket.getServerPort()
 		);
 		
@@ -176,19 +186,15 @@ class SocketOperator implements Runnable{
 
 	public void run() {
 		try{
-			while (goOn) {
-				final NetGameEvent event = NetGameEvent.fromStream(inStream);
-				System.out.println(event);
+			while (clientSocket.isConnected()) {
 				
+				final NetGameEvent event = NetGameEvent.fromStream(inStream);
 				processEvent(event);
+				
+				disconnectIfThreadIsInterrupted();
 			}
-		} catch(final IOException e) {
-			if(e.getMessage()==null) {
-				LOGGER.finest("Client at "+clientSocket.getInetAddress().getHostAddress()+" disconnected."); // TODO: Error occurse once outputstream is closed.
-			} else {
-				LOGGER.warning("I/O Exception occured with client at "+clientSocket.getInetAddress().getHostAddress()+
-					". Client will be dropped! Message: "+e.getMessage());
-			}
+		} catch (final IOException e) {
+			LOGGER.fine("client " + getClientIpAddr() + " disconnected");
 		} catch (final DataCorruptedException e) {
 			LOGGER.log(Level.WARNING, "client sent corrupted data", e);
 		} finally {
@@ -196,10 +202,20 @@ class SocketOperator implements Runnable{
 			StreamHelper.closeStream(outStream);
 			
 			try {
-				clientSocket.close();
+				closeConnection();
 			} catch (final IOException e) {
 				// nothing to fear
 			}
 		}
+	}
+	
+	private void disconnectIfThreadIsInterrupted() throws IOException {
+		if (Thread.interrupted()) {
+			closeConnection();
+		}
+	}
+
+	private String getClientIpAddr() {
+		return clientSocket.getInetAddress().getHostAddress();
 	}
 }

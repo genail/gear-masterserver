@@ -9,7 +9,6 @@ public class Registry {
 	
 	// static fields
 	
-	@SuppressWarnings("unused")
 	private static final Logger LOGGER =
 		Logger.getLogger(Registry.class.getName());
 	
@@ -105,6 +104,15 @@ public class Registry {
 	}
 	
 	final synchronized void cleanse() {
+		
+		LOGGER.finer(
+				String.format(
+						"cleaning registry %d => %d entries",
+						entriesMap.size(),
+						entriesMap.size() - cleanseCandidatesSet.size()
+				)
+		);
+		
 		for (final RegistryEntry entryToClean : cleanseCandidatesSet) {
 			entriesMap.remove(toEntryKey(entryToClean));
 		}
