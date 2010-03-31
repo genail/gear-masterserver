@@ -36,14 +36,6 @@ public class Registry {
 		// empty
 	}
 	
-	private String toEntryKey(RegistryEntry entry) {
-		return toEntryKey(entry.getServerAddr(), entry.getServerPort());
-	}
-	
-	private String toEntryKey(String serverAddr, int serverPort) {
-		return serverAddr + ":" + serverPort;
-	}
-	
 	/**
 	 * @return <code>true</code> if entry successfully added, <code>false</code>
 	 * if already exists.
@@ -93,7 +85,7 @@ public class Registry {
 		);
 		
 		for (final RegistryEntry entryToClean : cleanseCandidatesSet) {
-			entriesSet.remove(toEntryKey(entryToClean));
+			entriesSet.remove(entryToClean);
 		}
 		
 		cleanseCandidatesSet.clear();
