@@ -23,20 +23,18 @@ void App::onEventReceived(const CL_NetGameEvent &p_event)
 	
 	if (p_event.get_name() == cl_text("SERVERLIST")) {
 	
-		static const int HEADER_SIZE = 2;
+		static const int HEADER_SIZE = 1;
+		static const int ENTRY_SIZE = 2;
 	
-		const int entrySize = p_event.get_argument(0);
-		const int entryCount = p_event.get_argument(1);
+		const int entryCount = p_event.get_argument(0);
 		
 		for (int entryIdx = 0; entryIdx < entryCount; ++entryIdx) {
-			int i = HEADER_SIZE + (entrySize * entryIdx);
+			int i = HEADER_SIZE + (ENTRY_SIZE * entryIdx);
 			
 			CL_String serverAddr = p_event.get_argument(i++);
 			int serverPort = p_event.get_argument(i++);
-			CL_String serverName = p_event.get_argument(i++);
-			CL_String mapName = p_event.get_argument(i++);
 			
-			CL_Console::write_line(cl_format("%1:%2 - %3 (%4)", serverAddr, serverPort, serverName, mapName));
+			CL_Console::write_line(cl_format("%1:%2", serverAddr, serverPort));
 		}
 	}
 }
@@ -70,7 +68,7 @@ int App::start(const std::vector<CL_String> &args)
 		
 		
 		for (int i = 1; i <= 10; ++i) {
-			CL_NetGameEvent registerEvent("REGISTER", 2000 + i, cl_format("List test server %1", i), cl_format("%1.map", i));
+			CL_NetGameEvent registerEvent("REGISTER", 2000 + i);
 			CL_Console::write_line(cl_format("sending %1", registerEvent.to_string()));
 			client.send_event(registerEvent);
 			

@@ -10,7 +10,7 @@ public final class RegisterPacket implements Packet {
 
 	// static fields
 	
-	private static final int ARGS_COUNT = 3;
+	private static final int ARGS_COUNT = 1;
 	
 	public static final String NAME = "REGISTER";
 	
@@ -19,23 +19,11 @@ public final class RegisterPacket implements Packet {
 	
 	private int serverPort;
 	
-	private String serverName;
-	
-	private String currentMapName;
-	
 	
 	// non-static methods
 	
-	public String getServerName() {
-		return serverName;
-	}
-	
 	public int getServerPort() {
 		return serverPort;
-	}
-	
-	public String getCurrentMapName() {
-		return currentMapName;
 	}
 	
 	@Override
@@ -58,15 +46,11 @@ public final class RegisterPacket implements Packet {
 
 	private void assignArgumentsToFields(NetGameEventValue<?>[] arguments) {
 		serverPort = (Integer) arguments[0].getValue();
-		serverName = (String) arguments[1].getValue();
-		currentMapName = (String) arguments[2].getValue();
 	}
 
 	private void checkArgumentTypes(NetGameEventValue<?>[] arguments)
 			throws DataCorruptedException {
 		PacketHelper.checkArgumentType(Integer.class, arguments[0]);
-		PacketHelper.checkArgumentType(String.class, arguments[1]);
-		PacketHelper.checkArgumentType(String.class, arguments[2]);
 	}
 
 }

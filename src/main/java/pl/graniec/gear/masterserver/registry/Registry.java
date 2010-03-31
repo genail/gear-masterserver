@@ -1,7 +1,5 @@
 package pl.graniec.gear.masterserver.registry;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -25,8 +23,8 @@ public class Registry {
 	
 	// non-static fields
 	
-	private final Map<String, RegistryEntry> entriesMap =
-		new HashMap<String, RegistryEntry>();
+	private final Set<RegistryEntry> entriesSet =
+		new HashSet<RegistryEntry>();
 	
 	private final Set<RegistryEntry> cleanseCandidatesSet =
 		new HashSet<RegistryEntry>();
@@ -47,73 +45,41 @@ public class Registry {
 	}
 	
 	/**
-	 * @param entry
 	 * @return <code>true</code> if entry successfully added, <code>false</code>
 	 * if already exists.
 	 */
 	public synchronized boolean addEntry(RegistryEntry entry) {
-		final String entryKey = toEntryKey(entry);
-		
-		if (entriesMap.containsKey(entryKey)) {
+		if (entriesSet.contains(entry)) {
 			return false;
 		}
 		
-		entriesMap.put(entryKey, new RegistryEntry(entry));
+		entriesSet.add(entry);
 		return true;
 	}
 	
 	public synchronized boolean removeEntry(RegistryEntry entry) {
-		return entriesMap.remove(toEntryKey(entry)) != null;
+		return entriesSet.remove(entry);
 	}
 	
 	/**
-	 * @param serverAddr
-	 * @param serverPort
 	 * @return <code>true</code> if entry updated as alive, <code>false</code>
 	 * if entry does not exists.
 	 */
 	public synchronized boolean keepAlive(RegistryEntry entry) {
-		final String entryKey = toEntryKey(entry);
-		final RegistryEntry existingEntry = entriesMap.get(entryKey);
 		
-		if (existingEntry == null) {
+		if (!entriesSet.contains(entry)) {
 			return false;
 		}
 		
-		cleanseCandidatesSet.remove(existingEntry);
-		return true;
-	}
-	
-	/**
-	 * Updates entry data. This also works as 'keep alive'.
-	 * 
-	 * @param entry
-	 * @return <code>true</code> if entry successfully updated,
-	 * <code>false</code> if entry does not exists.
-	 */
-	public synchronized boolean updateEntry(RegistryEntry entry) {
-		final String entryKey = toEntryKey(entry);
-		final RegistryEntry existingEntry = entriesMap.get(entryKey);
-		
-		if (existingEntry == null) {
-			return false;
+		if (cleanseCandidatesSet.contains(entry)) {
+			cleanseCandidatesSet.remove(entry);
 		}
-
-		cleanseCandidatesSet.remove(existingEntry);
-		entriesMap.put(entryKey, new RegistryEntry(entry));
 		
 		return true;
 	}
 	
 	public synchronized final RegistryEntry[] getEntries() {
-		final RegistryEntry[] result = new RegistryEntry[entriesMap.size()];
-		
-		int i = 0;
-		for (final RegistryEntry entry : entriesMap.values()) {
-			result[i++] = new RegistryEntry(entry);
-		}
-		
-		return result;
+		return entriesSet.toArray(new RegistryEntry[entriesSet.size()]);
 	}
 	
 	final synchronized void cleanse() {
@@ -121,17 +87,17 @@ public class Registry {
 		LOGGER.finer(
 				String.format(
 						"cleaning registry %d => %d entries",
-						entriesMap.size(),
-						entriesMap.size() - cleanseCandidatesSet.size()
+						entriesSet.size(),
+						entriesSet.size() - cleanseCandidatesSet.size()
 				)
 		);
 		
 		for (final RegistryEntry entryToClean : cleanseCandidatesSet) {
-			entriesMap.remove(toEntryKey(entryToClean));
+			entriesSet.remove(toEntryKey(entryToClean));
 		}
 		
 		cleanseCandidatesSet.clear();
-		cleanseCandidatesSet.addAll(entriesMap.values());
+		cleanseCandidatesSet.addAll(entriesSet);
 	}
 	
 }

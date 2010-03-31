@@ -35,7 +35,7 @@ int App::start(const std::vector<CL_String> &args)
 			CL_KeepAlive::process();
 		}
 		
-		CL_NetGameEvent registerEvent("REGISTER", 1234, "Register test", "first.map");
+		CL_NetGameEvent registerEvent("REGISTER", 1234);
 		CL_Console::write_line(cl_format("sending %1", registerEvent.to_string()));
 		client.send_event(registerEvent);
 		

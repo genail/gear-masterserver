@@ -15,7 +15,6 @@ import pl.graniec.gear.masterserver.packets.ListRequestPacket;
 import pl.graniec.gear.masterserver.packets.RegisterPacket;
 import pl.graniec.gear.masterserver.packets.ServerListPacket;
 import pl.graniec.gear.masterserver.packets.SucceedPacket;
-import pl.graniec.gear.masterserver.packets.UpdatePacket;
 import pl.graniec.gear.masterserver.registry.Registry;
 import pl.graniec.gear.masterserver.registry.RegistryEntry;
 
@@ -85,8 +84,6 @@ class SocketOperator implements Runnable{
 			processRegisterEvent(event);
 		} else if (eventName.equals(KeepAlivePacket.NAME)) {
 			processKeepAliveEvent(event);
-		} else if (eventName.equals(UpdatePacket.NAME)) {
-			processUpdateEvent(event);
 		} else if (eventName.equals(ListRequestPacket.NAME)) {
 			processListRequestEvent(event);
 		} else {
@@ -131,33 +128,6 @@ class SocketOperator implements Runnable{
 		}
 	}
 
-	private void processUpdateEvent(NetGameEvent event)
-			throws DataCorruptedException, IOException {
-		final UpdatePacket updatePacket = new UpdatePacket();
-		updatePacket.parseEvent(event);
-		
-		final RegistryEntry registryEntry = new RegistryEntry(
-				getClientIpAddr(),
-				updatePacket.getServerPort()
-		);
-		
-		registryEntry.setServerName(updatePacket.getServerName());
-		registryEntry.setCurrentMapName(updatePacket.getCurrentMapName());
-		
-		if (updateEntry(registryEntry)) {
-			sendSucceedEvent();
-		} else {
-			sendFailedEvent();
-		}
-		
-		disconnect();
-	}
-
-	private boolean updateEntry(RegistryEntry entry) {
-		final Registry registry = Registry.getInstance();
-		return registry.updateEntry(entry);
-	}
-
 	private void processKeepAliveEvent(NetGameEvent event)
 			throws DataCorruptedException, IOException {
 		final KeepAlivePacket keepAlivePacket = new KeepAlivePacket();
@@ -188,23 +158,22 @@ class SocketOperator implements Runnable{
 		final RegisterPacket registerPacket = new RegisterPacket();
 		registerPacket.parseEvent(event);
 		
-		
 		final RegistryEntry registryEntry = new RegistryEntry(
 				getClientIpAddr(),
 				registerPacket.getServerPort()
 		);
 		
-		registryEntry.setServerName(registerPacket.getServerName());
-		registryEntry.setCurrentMapName(registerPacket.getCurrentMapName());
-		
-		
+		tryToRegister(registryEntry);
+		disconnect();
+	}
+
+	private void tryToRegister(final RegistryEntry registryEntry)
+			throws IOException {
 		if (registerEntry(registryEntry)) {
 			sendSucceedEvent();
 		} else {
 			sendFailedEvent();
 		}
-		
-		disconnect();
 	}
 	
 	private boolean registerEntry(RegistryEntry entry) {

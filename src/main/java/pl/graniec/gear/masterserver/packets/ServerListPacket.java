@@ -14,9 +14,9 @@ public final class ServerListPacket implements Packet {
 	
 	public static final String NAME = "SERVERLIST";
 	
-	private static final int HEADER_SIZE = 2;
+	private static final int HEADER_SIZE = 1;
 	
-	private static final int ENTRY_SIZE = 4;
+	private static final int ENTRY_SIZE = 2;
 	
 	
 	// non-static fields
@@ -33,7 +33,6 @@ public final class ServerListPacket implements Packet {
 		final int valuesSize = HEADER_SIZE + (ENTRY_SIZE * entriesSet.size());
 		final NetGameEventValue<?>[] values = new NetGameEventValue<?>[valuesSize];
 		
-		writeEntrySize(values);
 		writeEntriesCount(values);
 		
 		int i = HEADER_SIZE;
@@ -45,6 +44,10 @@ public final class ServerListPacket implements Packet {
 		
 		return new NetGameEvent(NAME, values);
 	}
+	
+	private void writeEntriesCount(NetGameEventValue<?>[] values) {
+		values[0] = new NetGameEventValue<Integer>(entriesSet.size());
+	}
 
 	private void writeEntry(
 			NetGameEventValue<?>[] values,
@@ -53,16 +56,6 @@ public final class ServerListPacket implements Packet {
 	) {
 		values[offset++] = new NetGameEventValue<String>(entry.getServerAddr());
 		values[offset++] = new NetGameEventValue<Integer>(entry.getServerPort());
-		values[offset++] = new NetGameEventValue<String>(entry.getServerName());
-		values[offset++] = new NetGameEventValue<String>(entry.getCurrentMapName());
-	}
-
-	private void writeEntriesCount(NetGameEventValue<?>[] values) {
-		values[1] = new NetGameEventValue<Integer>(entriesSet.size());
-	}
-
-	private void writeEntrySize(NetGameEventValue<?>[] values) {
-		values[0] = new NetGameEventValue<Integer>(ENTRY_SIZE);
 	}
 
 	@Override

@@ -17,18 +17,12 @@ public class RegistryEntry {
 	
 	private final int serverPort;
 	
-	private String serverName = "";
-	
-	private String currentMapName = "";
-
 	
 	// non-static methods
 	
 	public RegistryEntry(RegistryEntry other) {
 		serverAddr = other.serverAddr;
 		serverPort = other.serverPort;
-		serverName = other.serverName;
-		currentMapName = other.currentMapName;
 	}
 	
 	
@@ -47,21 +41,42 @@ public class RegistryEntry {
 	public int getServerPort() {
 		return serverPort;
 	}
-	
-	public String getServerName() {
-		return serverName;
+
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result
+				+ ((serverAddr == null) ? 0 : serverAddr.hashCode());
+		result = prime * result + serverPort;
+		return result;
 	}
-	
-	public String getCurrentMapName() {
-		return currentMapName;
-	}
-	
-	public void setServerName(String serverName) {
-		this.serverName = serverName;
-	}
-	
-	public void setCurrentMapName(String currentMapName) {
-		this.currentMapName = currentMapName;
+
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		final RegistryEntry other = (RegistryEntry) obj;
+		if (serverAddr == null) {
+			if (other.serverAddr != null) {
+				return false;
+			}
+		} else if (!serverAddr.equals(other.serverAddr)) {
+			return false;
+		}
+		if (serverPort != other.serverPort) {
+			return false;
+		}
+		return true;
 	}
 	
 }
